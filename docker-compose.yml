@@ -1,0 +1,40 @@
+services:
+  waha:
+    image: devlikeapro/waha:latest
+    container_name: cobranca_waha
+    restart: always
+    environment:
+      - WHATSAPP_DEFAULT_ENGINE=WEBJS
+      - WAHA_LOG_LEVEL=info
+      - WAHA_PRINT_QR=False
+      # Pega a chave criptografada do .env
+      - WAHA_API_KEY=${WAHA_API_KEY_HASH}
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./waha_data:/app/.waha
+    networks:
+      - network_cobranca
+
+  app:
+    build: .
+    container_name: cobranca_app
+    restart: always
+    depends_on:
+      - waha
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    volumes:
+      # Mapeia as pastas de saída para sua máquina
+      - ./mensagens_txt_geradas:/app/mensagens_txt_geradas
+      - ./contatos_descartados:/app/contatos_descartados
+      # NOVO: Mapeia a pasta de logs organizada
+      - ./logs:/app/logs
+    networks:
+      - network_cobranca
+
+networks:
+  network_cobranca:
+    driver: bridge

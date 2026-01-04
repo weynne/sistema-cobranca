@@ -9,6 +9,19 @@ from modules import leitor_planilha
 from config.constants import MAPEAMENTO_LOTEAMENTO, MAPEAMENTO_EMPRESA_POR_CODIGO
 import backend_orchestrator
 
+# --- DEFINIÇÃO DE CORES FIXAS (Mapa de Calor) ---
+# Garante que a cor seja sempre a mesma, independente do filtro
+CORES_AGING = {
+    'a. Até 30 dias':   '#fee5d9',  # Vermelho bem claro
+    'b. 31-60 dias':    '#fcbba1',
+    'c. 61-90 dias':    '#fc9272',
+    'd. 91-120 dias':   '#fb6a4a',
+    'e. 121-180 dias':  '#ef3b2c',
+    'f. 181-360 dias':  '#cb181d',
+    'g. 361-720 dias':  '#a50f15',
+    'h. 720+ dias':     '#67000d'   # Vermelho sangue/escuro
+}
+
 # --- Configuração da Página ---
 st.set_page_config(
     page_title="Dashboard de Cobrança",
@@ -25,7 +38,7 @@ def ler_logs_do_arquivo():
             return "".join(f.readlines()[-50:])
     except: return "Erro ao ler logs."
 
-# --- Função Visual (Com Abas - Estilo Antigo) ---
+# --- Função Visual (Estilo Projeto Antigo) ---
 def exibir_resultados_processamento(resultados):
     if not resultados:
         st.error("O processamento não retornou resultados válidos.")
@@ -60,7 +73,6 @@ def exibir_resultados_processamento(resultados):
         st.subheader("Downloads Disponíveis")
         col_down1, col_down2 = st.columns(2)
         
-        # 1. Arquivo de Descartados
         with col_down1:
             arq_descartados = resultados.get('arquivo_descartados')
             if arq_descartados and os.path.exists(arq_descartados):
@@ -76,7 +88,6 @@ def exibir_resultados_processamento(resultados):
             else:
                 st.success("✅ Nenhum contato precisou ser descartado.")
 
-        # 2. Relatório de Execução
         with col_down2:
             relatorio = resultados.get('relatorio', [])
             if relatorio:
@@ -138,7 +149,6 @@ def main():
 
     c_filt1, c_filt2 = st.columns(2)
     
-    # Filtro de Empresas + Loteamentos
     empresas_unicas = sorted(list(set(MAPEAMENTO_EMPRESA_POR_CODIGO.values())))
     loteamentos_unicos = sorted(list(df['Nome Loteamento'].unique()))
     opcoes_filtro = ["Todos"] + empresas_unicas + loteamentos_unicos
@@ -173,20 +183,23 @@ def main():
         with c_graf:
             st.subheader("Aging do Valor Vencido")
             
-
+            # Ordenação dos dados para garantir a legenda correta
             df_chart = dash_data['dados_donut'].sort_values('Faixa de Atraso')
 
+            # --- USO DE MAPA DE CORES FIXO ---
+            # Aqui usamos 'color_discrete_map' em vez de sequence.
+            # Isso garante que a chave 'a. Até 30 dias' tenha SEMPRE a cor #fee5d9,
+            # mesmo que ela seja a única fatia do gráfico.
             fig = px.pie(
                 df_chart, 
                 values='Valor', 
                 names='Faixa de Atraso', 
                 hole=0.4,
-                # Reds: Vermelho Claro (0) -> Vermelho Escuro (Fim)
-                color_discrete_sequence=px.colors.sequential.Reds
+                color='Faixa de Atraso', # Necessário para o mapa funcionar bem
+                color_discrete_map=CORES_AGING
             )
             
             fig.update_traces(sort=False, textposition='outside', textinfo='percent+label', rotation=90)
-            
             st.plotly_chart(fig, use_container_width=True)
             
         with c_tab:
