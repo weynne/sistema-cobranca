@@ -1,0 +1,25 @@
+# Ambientes e Dependências
+.env
+venv/
+__pycache__/
+*.py[cod]
+
+# Logs
+logs/
+*.log
+
+# Dados do Waha (Sessões locais)
+.waha_data/
+waha_data/
+
+# Arquivos de Dados (Nunca commitar dados reais*.xlsx
+*.xls
+*.csv
+
+# Saídas do Script
+mensagens_txt_geradas/
+contatos_descartados/
+
+# IDEs / Editores
+.vscode/
+.idea/
