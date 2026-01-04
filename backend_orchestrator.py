@@ -9,11 +9,9 @@ import pandas as pd
 load_dotenv()
 
 # --- CONFIGURAÇÃO DE LOGS ---
-# 1. Define o nome da pasta e do arquivo
 LOG_DIR = "logs"
 LOG_FILE = "processamento_cobrancas.log"
 
-# 2. Cria a pasta automaticamente se ela não existir
 if not os.path.exists(LOG_DIR):
     try:
         os.makedirs(LOG_DIR)
@@ -21,7 +19,6 @@ if not os.path.exists(LOG_DIR):
     except OSError as e:
         print(f"Erro ao criar diretório de logs: {e}")
 
-# 3. Configura o logging apontando para dentro da pasta
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(module)s: %(message)s',
@@ -35,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 try:
     from modules import leitor_planilha, construtor_mensagem, waha_sender, txt_sender
-    from config import MAPEAMENTO_LOTEAMENTO, MAPEAMENTO_EMPRESA_POR_CODIGO, EMPRESA_PADRAO
+    from config.constants import MAPEAMENTO_LOTEAMENTO, MAPEAMENTO_EMPRESA_POR_CODIGO, EMPRESA_PADRAO
 except ImportError as e:
     logger.critical(f"Erro ao importar módulos: {e}")
     raise
@@ -67,7 +64,6 @@ def _processar_grupo_cliente(telefone, grupo_df):
         lista_parcelas_info = []
         valor_total = 0.0
         
-        # Identifica a empresa baseada no código do loteamento
         codigos_loteamento = grupo_df[CONFIG['col_loteamento']].astype(str).str.split('/').str[0].str.strip().unique()
         empresas_encontradas = {MAPEAMENTO_EMPRESA_POR_CODIGO.get(cod) for cod in codigos_loteamento if cod in MAPEAMENTO_EMPRESA_POR_CODIGO}
         
@@ -113,17 +109,13 @@ def processar_cobrancas(arquivo_input):
     if df is None or df.empty:
         return {'status': 'erro', 'message': 'Planilha vazia ou inválida'}
 
-    # Filtra onde o telefone (tratado) existe
     col_tel = CONFIG['col_telefone']
     
-    # Valida colunas obrigatórias
     if col_tel not in df.columns:
         return {'status': 'erro', 'message': f"Coluna '{col_tel}' não encontrada na planilha."}
     
-    # Aplica a formatação de 8 dígitos na coluna de telefone
     df[col_tel] = df[col_tel].apply(leitor_planilha.formatar_telefone_para_8_digitos)
     
-    # Pega apenas linhas com telefone válido
     df_validos = df[df[col_tel].notna()]
     
     if df_validos.empty:
